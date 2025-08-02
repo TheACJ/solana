@@ -1,13 +1,13 @@
 use clap::Parser;
-use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signer::Signer;
 use solana_streamer::socket::SocketAddrSpace;
-use solana_test_validator::{TestValidator, TestValidatorGenesis};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use solana_test_validator::TestValidatorGenesis;
+use std::net::{IpAddr, SocketAddr};
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::sync::Arc;
 use tokio::signal;
-use solana_ledger::tower_storage::FileTowerStorage; // Add for tower storage
+use solana_core::consensus::tower_storage::FileTowerStorage;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -62,7 +62,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Configure file-based tower storage
     let tower_path = ledger_path.join("tower");
-    genesis.tower_storage(FileTowerStorage::new(&tower_path));
+    genesis.tower_storage(Arc::new(FileTowerStorage::new(tower_path)));
 
     if args.rpc_port != 0 {
         genesis.rpc_port(args.rpc_port);
