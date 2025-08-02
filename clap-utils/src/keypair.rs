@@ -787,7 +787,7 @@ pub fn signer_from_path_with_config(
         }
         SignerSourceKind::Usb(locator) => {
             if wallet_manager.is_none() {
-                *wallet_manager = maybe_wallet_manager()?;
+                *wallet_manager = Some(maybe_wallet_manager()?);
             }
             if let Some(wallet_manager) = wallet_manager {
                 Ok(Box::new(generate_remote_keypair(
@@ -914,7 +914,7 @@ pub fn resolve_signer_from_path(
         }
         SignerSourceKind::Usb(locator) => {
             if wallet_manager.is_none() {
-                *wallet_manager = maybe_wallet_manager()?;
+                *wallet_manager = Some(maybe_wallet_manager()?);
             }
             if let Some(wallet_manager) = wallet_manager {
                 let path = generate_remote_keypair(

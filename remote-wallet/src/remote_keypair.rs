@@ -50,7 +50,7 @@ impl Signer for RemoteKeypair {
         match &self.wallet_type {
             RemoteWalletType::Ledger(wallet) => wallet
                 .sign_message(&self.derivation_path, message)
-                .map_err(|e| e.into()),
+                .map_err(|e| SignerError::Custom(format!("Remote wallet error: {e}")))
         }
     }
 
@@ -69,7 +69,7 @@ pub fn generate_remote_keypair(
     let remote_wallet_info = RemoteWalletInfo::parse_locator(locator);
     if remote_wallet_info.manufacturer == Manufacturer::Ledger {
         let ledger = get_ledger_from_info(remote_wallet_info, keypair_name, wallet_manager)?;
-        let path = format!("{}{}", ledger.pretty_path, derivation_path.get_query());
+        let path = format!("{}{}", ledger.ledger.pretty_path, derivation_path.get_query());
         Ok(RemoteKeypair::new(
             RemoteWalletType::Ledger(ledger),
             derivation_path,
