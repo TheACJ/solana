@@ -34,6 +34,11 @@ solana-sdk = { workspace = true }
 solana-streamer = { workspace = true }
 solana-tpu-client = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
+clap = { version = "4.5", features = ["derive"] }
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
+
+[[bin]]
+name = "solana-test-validator"
+path = "src/main.rs"
