@@ -21,6 +21,12 @@ jobs:
           toolchain: stable
           targets: aarch64-linux-android
 
+      - name: 📋 Check and add Android target
+        run: |
+          # Force add the target in case rust-toolchain.toml overrides it
+          rustup target add aarch64-linux-android --toolchain stable
+          rustup show
+
       - name: 📦 Set up Android NDK
         run: |
           # Install Android NDK
@@ -43,8 +49,11 @@ jobs:
 
       - name: 🧱 Build release binaries
         run: |
-          cargo build --release --target aarch64-linux-android --bin solana
-          cargo build --release --target aarch64-linux-android --bin solana-test-validator
+          # Override any rust-toolchain.toml restrictions
+          export RUSTUP_TOOLCHAIN=stable
+          rustup target add aarch64-linux-android --toolchain stable
+          cargo +stable build --release --target aarch64-linux-android --bin solana
+          cargo +stable build --release --target aarch64-linux-android --bin solana-test-validator
 
       - name: 📦 Create tar.xz archive
         run: |
