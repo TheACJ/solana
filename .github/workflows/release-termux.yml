@@ -50,36 +50,19 @@ jobs:
 
       - name: 🔐 Set up OpenSSL for Android
         run: |
-          # Set environment variables for OpenSSL cross-compilation
+          # Use vendored OpenSSL to avoid cross-compilation issues
           echo "OPENSSL_STATIC=1" >> $GITHUB_ENV
-          echo "OPENSSL_NO_VENDOR=1" >> $GITHUB_ENV
+          echo "OPENSSL_VENDORED=1" >> $GITHUB_ENV
           
-          # Build OpenSSL for Android
-          git clone --depth 1 --branch OpenSSL_1_1_1w https://github.com/openssl/openssl.git openssl-src
-          cd openssl-src
+          # Additional Android-specific environment variables
+          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_API_LEVEL=21" >> $GITHUB_ENV
           
-          # Configure OpenSSL for Android ARM64
-          export PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
-          export CC=aarch64-linux-android21-clang
-          export CXX=aarch64-linux-android21-clang++
-          export AR=llvm-ar
-          export RANLIB=llvm-ranlib
-          export STRIP=llvm-strip
-          
-          ./Configure android-arm64 \
-            -D__ANDROID_API__=21 \
-            --prefix=$PWD/../openssl-android \
-            --openssldir=$PWD/../openssl-android \
-            no-shared \
-            no-tests
-          
-          make -j$(nproc)
-          make install_sw
-          
-          cd ..
-          echo "OPENSSL_DIR=$PWD/openssl-android" >> $GITHUB_ENV
-          echo "OPENSSL_LIB_DIR=$PWD/openssl-android/lib" >> $GITHUB_ENV
-          echo "OPENSSL_INCLUDE_DIR=$PWD/openssl-android/include" >> $GITHUB_ENV
+          # Set up additional toolchain environment variables
+          echo "TARGET_CC=aarch64-linux-android21-clang" >> $GITHUB_ENV
+          echo "TARGET_CXX=aarch64-linux-android21-clang++" >> $GITHUB_ENV
+          echo "TARGET_AR=llvm-ar" >> $GITHUB_ENV
+          echo "TARGET_RANLIB=llvm-ranlib" >> $GITHUB_ENV
 
       - name: 🧱 Build release binaries
         run: |
