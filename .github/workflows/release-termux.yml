@@ -21,14 +21,25 @@ jobs:
           toolchain: stable
           targets: aarch64-linux-android
 
-      - name: 📦 Install Android linker tools
-        run: sudo apt update && sudo apt install -y gcc-aarch64-linux-android
+      - name: 📦 Set up Android NDK
+        run: |
+          # Install Android NDK
+          wget -q https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
+          unzip -q android-ndk-r26d-linux.zip
+          export ANDROID_NDK_ROOT=$PWD/android-ndk-r26d
+          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT" >> $GITHUB_ENV
+          echo "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
 
       - name: ⚙️ Set up Cargo linker config
         run: |
           mkdir -p .cargo
           echo '[target.aarch64-linux-android]' >> .cargo/config.toml
-          echo 'linker = "aarch64-linux-android-gcc"' >> .cargo/config.toml
+          echo 'linker = "aarch64-linux-android21-clang"' >> .cargo/config.toml
+          echo '' >> .cargo/config.toml
+          echo '[env]' >> .cargo/config.toml
+          echo 'CC_aarch64_linux_android = "aarch64-linux-android21-clang"' >> .cargo/config.toml
+          echo 'CXX_aarch64_linux_android = "aarch64-linux-android21-clang++"' >> .cargo/config.toml
+          echo 'AR_aarch64_linux_android = "llvm-ar"' >> .cargo/config.toml
 
       - name: 🧱 Build release binaries
         run: |
