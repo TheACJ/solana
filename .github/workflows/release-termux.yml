@@ -1,0 +1,58 @@
+name: Build Termux Binaries
+
+on:
+  push:
+    tags:
+      - "v*-termux"
+  workflow_dispatch:
+
+jobs:
+  build-termux:
+    name: Build Solana Binaries for Termux (Android aarch64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🧾 Checkout repository
+        uses: actions/checkout@v3
+
+      - name: 🛠 Install Rust + Android target
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: aarch64-linux-android
+          override: true
+
+      - name: 📦 Install Android linker tools
+        run: sudo apt update && sudo apt install -y gcc-aarch64-linux-android
+
+      - name: ⚙️ Set up Cargo linker config
+        run: |
+          mkdir -p .cargo
+          echo '[target.aarch64-linux-android]' >> .cargo/config.toml
+          echo 'linker = "aarch64-linux-android-gcc"' >> .cargo/config.toml
+
+      - name: 🧱 Build release binaries
+        run: |
+          cargo build --release --target aarch64-linux-android --bin solana
+          cargo build --release --target aarch64-linux-android --bin solana-test-validator
+
+      - name: 📦 Create tar.xz archive
+        run: |
+          mkdir -p out
+          cp target/aarch64-linux-android/release/solana out/
+          cp target/aarch64-linux-android/release/solana-test-validator out/
+          tar -cJf solana-termux-binaries.tar.xz -C out .
+
+      - name: 🚀 Publish to GitHub Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: solana-termux-binaries.tar.xz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+       - name: 💾 Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: solana-termux-binaries
+          path: solana-termux-binaries.tar.xz
