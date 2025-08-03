@@ -65,6 +65,9 @@ jobs:
           echo "TARGET_RANLIB=llvm-ranlib" >> $GITHUB_ENV
 
       - name: 🧱 Build release binaries
+        env:
+          # Allow the old implicit-declaration style that sys-info 0.9.1 uses
+          CFLAGS_aarch64_linux_android: "-std=gnu89"
         run: |
           # Override any rust-toolchain.toml restrictions
           export RUSTUP_TOOLCHAIN=stable
