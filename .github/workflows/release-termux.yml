@@ -13,14 +13,13 @@ jobs:
 
     steps:
       - name: 🧾 Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 🛠 Install Rust + Android target
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          target: aarch64-linux-android
-          override: true
+          targets: aarch64-linux-android
 
       - name: 📦 Install Android linker tools
         run: sudo apt update && sudo apt install -y gcc-aarch64-linux-android
@@ -44,7 +43,7 @@ jobs:
           tar -cJf solana-termux-binaries.tar.xz -C out .
 
       - name: 🚀 Publish to GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: solana-termux-binaries.tar.xz
@@ -52,7 +51,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 💾 Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: solana-termux-binaries
           path: solana-termux-binaries.tar.xz
