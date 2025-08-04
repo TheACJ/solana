@@ -64,24 +64,27 @@ jobs:
           echo "TARGET_AR=llvm-ar" >> $GITHUB_ENV
           echo "TARGET_RANLIB=llvm-ranlib" >> $GITHUB_ENV
           
-      - name: 🧰 Install protoc
+      - name: 🧰 Install protoc and build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
+          sudo apt-get install -y protobuf-compiler autoconf libtool make
           
       - name: 🔍 Debug jemalloc Build
         run: |
-          # Check if configure script exists
-          ls -la /home/runner/work/solana/solana/target/aarch64-linux-android/release/build/tikv-jemalloc-sys-*/out/build
-          # Run configure manually with verbose output
-          cd /home/runner/work/solana/solana/target/aarch64-linux-android/release/build/tikv-jemalloc-sys-*/out/build
-          CC="aarch64-linux-android21-clang" \
-          CFLAGS="-O3 -DANDROID -ffunction-sections -fdata-sections -fPIC -std=gnu89" \
-          CPPFLAGS="-O3 -DANDROID -ffunction-sections -fdata-sections -fPIC -std=gnu89" \
-          LDFLAGS="-O3 -DANDROID -ffunction-sections -fdata-sections -fPIC -std=gnu89" \
-          AR="${{ env.ANDROID_NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" \
-          RANLIB="${{ env.ANDROID_NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib" \
-          sh ./configure --disable-cxx --with-jemalloc-prefix=_rjem_ --with-private-namespace=_rjem_ --host=aarch64-linux-android --build=x86_64-unknown-linux-gnu --prefix=/home/runner/work/solana/solana/target/aarch64-linux-android/release/build/tikv-jemalloc-sys-*/out || echo "Configure failed"
+          # List all tikv-jemalloc-sys build directories to find the correct one
+          echo "Listing build directories:"
+          find /home/runner/work/solana/solana/target/aarch64-linux-android/release/build -maxdepth 2 -type d -name "tikv-jemalloc-sys-*"
+          # Try to locate the out/build directory
+          find /home/runner/work/solana/solana/target/aarch64-linux-android/release/build -type d -name build
+          # Run a minimal build to trigger tikv-jemalloc-sys build script and capture output
+          cargo +stable build --release --target aarch64-linux-android --package tikv-jemalloc-sys --verbose > jemalloc_build_log.txt 2>&1 || echo "Build script failed"
+          cat jemalloc_build_log.txt
+        env:
+          ANDROID_NDK_ROOT: /home/runner/work/solana/solana/android-ndk-r26d
+          CC_aarch64_linux_android: "aarch64-linux-android21-clang"
+          AR_aarch64_linux_android: "/home/runner/work/solana/solana/android-ndk-r26d/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          RANLIB_aarch64_linux_android: "/home/runner/work/solana/solana/android-ndk-r26d/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib"
+          CFLAGS_aarch64_linux_android: "-std=gnu89"
 
       - name: 🧱 Build release binaries
         env:
