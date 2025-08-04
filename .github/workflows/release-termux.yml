@@ -73,6 +73,12 @@ jobs:
         env:
           # Allow the old implicit-declaration style that sys-info 0.9.1 uses
           CFLAGS_aarch64_linux_android: "-std=gnu89"
+          
+          # jemalloc cross-compile flags
+          CC_aarch64_linux_android: "aarch64-linux-android21-clang"
+          AR_aarch64_linux_android: "llvm-ar"
+          RANLIB_aarch64_linux_android: "llvm-ranlib"
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: "aarch64-linux-android21-clang"
         run: |
           # Override any rust-toolchain.toml restrictions
           export RUSTUP_TOOLCHAIN=stable
