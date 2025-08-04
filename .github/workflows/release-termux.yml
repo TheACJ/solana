@@ -68,15 +68,30 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler autoconf libtool make
+
+      - name: ✅ Verify Toolchain and NDK
+        run: |
+          # Verify Rust toolchain
+          rustc --version
+          rustup show
+          rustup target list --toolchain stable | grep aarch64-linux-android
+          # Verify NDK tools
+          ls -la $ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin
+          which aarch64-linux-android21-clang
+          aarch64-linux-android21-clang --version
+          which llvm-ar
+          llvm-ar --version
+          which llvm-ranlib
+          llvm-ranlib --version
+        env:
+          ANDROID_NDK_ROOT: /home/runner/work/solana/solana/android-ndk-r26d
           
       - name: 🔍 Debug jemalloc Build
         run: |
-          # List all tikv-jemalloc-sys build directories to find the correct one
-          echo "Listing build directories:"
-          find /home/runner/work/solana/solana/target/aarch64-linux-android/release/build -maxdepth 2 -type d -name "tikv-jemalloc-sys-*"
-          # Try to locate the out/build directory
-          find /home/runner/work/solana/solana/target/aarch64-linux-android/release/build -type d -name build
-          # Run a minimal build to trigger tikv-jemalloc-sys build script and capture output
+          # List target directory contents to check if build starts
+          echo "Listing target directory:"
+          ls -la /home/runner/work/solana/solana/target/aarch64-linux-android || echo "Target directory not created"
+          # Run a minimal build to trigger tikv-jemalloc-sys build script
           cargo +stable build --release --target aarch64-linux-android --package tikv-jemalloc-sys --verbose > jemalloc_build_log.txt 2>&1 || echo "Build script failed"
           cat jemalloc_build_log.txt
         env:
