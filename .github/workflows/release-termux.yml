@@ -45,8 +45,8 @@ jobs:
           echo '[env]' >> .cargo/config.toml
           echo 'CC_aarch64_linux_android = "aarch64-linux-android21-clang"' >> .cargo/config.toml
           echo 'CXX_aarch64_linux_android = "aarch64-linux-android21-clang++"' >> .cargo/config.toml
-          echo 'AR_aarch64_linux_android = "llvm-ar"' >> .cargo/config.toml
-          echo 'RANLIB_aarch64_linux_android = "llvm-ranlib"' >> .cargo/config.toml
+          echo 'AR_aarch64_linux_android = "${{ env.ANDROID_NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"' >> .cargo/config.toml
+          echo 'RANLIB_aarch64_linux_android = "${{ env.ANDROID_NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib"' >> .cargo/config.toml
 
       - name: 🔐 Set up OpenSSL for Android
         run: |
@@ -68,19 +68,29 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler
+          
+      - name: 🔍 Debug jemalloc Build
+        run: |
+          # Check if configure script exists
+          ls -la /home/runner/work/solana/solana/target/aarch64-linux-android/release/build/tikv-jemalloc-sys-*/out/build
+          # Run configure manually with verbose output
+          cd /home/runner/work/solana/solana/target/aarch64-linux-android/release/build/tikv-jemalloc-sys-*/out/build
+          CC="aarch64-linux-android21-clang" \
+          CFLAGS="-O3 -DANDROID -ffunction-sections -fdata-sections -fPIC -std=gnu89" \
+          CPPFLAGS="-O3 -DANDROID -ffunction-sections -fdata-sections -fPIC -std=gnu89" \
+          LDFLAGS="-O3 -DANDROID -ffunction-sections -fdata-sections -fPIC -std=gnu89" \
+          AR="${{ env.ANDROID_NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" \
+          RANLIB="${{ env.ANDROID_NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib" \
+          sh ./configure --disable-cxx --with-jemalloc-prefix=_rjem_ --with-private-namespace=_rjem_ --host=aarch64-linux-android --build=x86_64-unknown-linux-gnu --prefix=/home/runner/work/solana/solana/target/aarch64-linux-android/release/build/tikv-jemalloc-sys-*/out || echo "Configure failed"
 
       - name: 🧱 Build release binaries
         env:
-          # Allow the old implicit-declaration style that sys-info 0.9.1 uses
           CFLAGS_aarch64_linux_android: "-std=gnu89"
-          
-          # jemalloc cross-compile flags
           CC_aarch64_linux_android: "aarch64-linux-android21-clang"
-          AR_aarch64_linux_android: "llvm-ar"
-          RANLIB_aarch64_linux_android: "llvm-ranlib"
+          AR_aarch64_linux_android: "${{ env.ANDROID_NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          RANLIB_aarch64_linux_android: "${{ env.ANDROID_NDK_ROOT }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib"
           CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: "aarch64-linux-android21-clang"
         run: |
-          # Override any rust-toolchain.toml restrictions
           export RUSTUP_TOOLCHAIN=stable
           rustup target add aarch64-linux-android --toolchain stable
           cargo +stable build --release --target aarch64-linux-android --bin solana
