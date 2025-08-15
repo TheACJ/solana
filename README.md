@@ -4,144 +4,153 @@
   </a>
 </p>
 
-[![Solana crate](https://img.shields.io/crates/v/solana-core.svg)](https://crates.io/crates/solana-core)
-[![Solana documentation](https://docs.rs/solana-core/badge.svg)](https://docs.rs/solana-core)
-[![Build status](https://badge.buildkite.com/8cc350de251d61483db98bdfc895b9ea0ac8ffa4a32ee850ed.svg?branch=master)](https://buildkite.com/solana-labs/solana/builds?branch=master)
-[![codecov](https://codecov.io/gh/solana-labs/solana/branch/master/graph/badge.svg)](https://codecov.io/gh/solana-labs/solana)
+# 🌀 Solana Development on Android via Termux
 
-# Building
+## 📌 Overview
+This document outlines the process and solutions for **building and running the Solana CLI and Test Validator directly on Android devices** using [Termux](https://termux.dev/). It provides a detailed reference for developers interested in working with Solana locally on ARM64 Android devices **without needing a traditional Linux or desktop setup**.
 
-## **1. Install rustc, cargo and rustfmt.**
+---
 
-```bash
-$ curl https://sh.rustup.rs -sSf | sh
-$ source $HOME/.cargo/env
-$ rustup component add rustfmt
-```
+## ⚠️ Disclaimer!!
 
-When building the master branch, please make sure you are using the latest stable rust version by running:
+> This project provides an **unofficial build** of the Solana CLI and Test Validator for **Android via Termux**.  
+>
+> It is **not maintained, endorsed, or supported** by the official [Solana Labs](https://solana.com) team.  
+>
+> Use at your own risk — especially for tools that interact with real or testnet funds.
 
-```bash
-$ rustup update
-```
+### ✅ Intended for:
+- Local development
+- Smart contract testing
+- Educational and learning purposes
 
-When building a specific release branch, you should check the rust version in `ci/rust-version.sh` and if necessary, install that version by running:
-```bash
-$ rustup install VERSION
-```
-Note that if this is not the latest rust version on your machine, cargo commands may require an [override](https://rust-lang.github.io/rustup/overrides.html) in order to use the correct version.
+### ❌ Not recommended for:
+- Running mainnet validators
+- Managing real funds
+- Production deployment
 
-On Linux systems you may need to install libssl-dev, pkg-config, zlib1g-dev, protobuf etc.
+> Termux provides a POSIX-like environment on Android, but **differences in OS-level behavior** (filesystem, syscalls, networking, signal handling) may cause subtle or major runtime issues.
 
-On Ubuntu:
-```bash
-$ sudo apt-get update
-$ sudo apt-get install libssl-dev libudev-dev pkg-config zlib1g-dev llvm clang cmake make libprotobuf-dev protobuf-compiler
-```
+---
 
-On Fedora:
-```bash
-$ sudo dnf install openssl-devel systemd-devel pkg-config zlib-devel llvm clang cmake make protobuf-devel protobuf-compiler perl-core
-```
+## 📱 Motivation
+Solana development tooling (like `solana` and `solana-test-validator`) is designed for x86_64 Linux/macOS/Windows systems. Android's environment differs due to:
 
-## **2. Download the source code.**
+- Different architecture (`aarch64-linux-android`)
+- Incomplete or incompatible `libc` bindings (e.g., `sys-info`)
+- Filesystem and socket permission limitations
+- Dependencies like `QUIC` behaving unexpectedly
 
-```bash
-$ git clone https://github.com/solana-labs/solana.git
-$ cd solana
-```
+---
 
-## **3. Build.**
+## ✅ Achievements Summary
 
-```bash
-$ ./cargo build
-```
+### 🔧 1. **Compiled Solana CLI on Android**
+- Built the entire CLI toolchain inside Termux (`solana` binary)
+- Applied patches to:
+  - Fix `remote-wallet` and `sys-info` incompatibilities
+  - Replace problematic crates and logic assumptions
+  - Work within Termux’s sandboxed environment
 
-# Testing
-
-**Run the test suite:**
+### ✅ CLI Commands Confirmed Working
 
 ```bash
-$ ./cargo test
+solana config get
+solana address
+solana-keygen new
+solana-keygen pubkey
+solana config set --keypair ...
+solana airdrop
+solana logs
+solana transfer
+solana program deploy
 ```
 
-### Starting a local testnet
+---
 
-Start your own testnet locally, instructions are in the [online docs](https://docs.solanalabs.com/clusters/benchmark).
+### 🧪 2. **Custom `solana-test-validator` Binary**
+- Created a new `main.rs` under `test-validator/`
+- Enabled clean CLI interface using `clap`
+- Persisted keypairs for reuse
+- Controlled ledger lifecycle with `--reset-ledger`
+- Exposed validator metadata via stdout
 
-### Accessing the remote development cluster
+---
 
-* `devnet` - stable public cluster for development accessible via
-devnet.solana.com. Runs 24/7. Learn more about the [public clusters](https://docs.solanalabs.com/clusters)
+## 🧰 `solana-test-validator` Features
 
-# Benchmarking
+- ✅ Custom `--mint-input` and `--mint-output` support
+- ✅ File-based tower storage for local consistency
+- ✅ Lightweight mode with reduced shred count
+- ✅ Graceful shutdown on `Ctrl+C`
+- ✅ Default persistent ledger in `~/.solana-test-validator/ledger`
 
-First, install the nightly build of rustc. `cargo bench` requires the use of the
-unstable features only available in the nightly build.
+---
+
+## 🔐 Keypair Reusability
 
 ```bash
-$ rustup install nightly
+./solana-test-validator   --mint-input ~/.solana-test-validator/ledger/mint.json
 ```
 
-Run the benchmarks:
+Or to generate and save a new one:
 
 ```bash
-$ cargo +nightly bench
+./solana-test-validator   --mint-output ~/.solana-test-validator/ledger/mint.json
 ```
 
-# Release Process
+---
 
-The release process for this project is described [here](RELEASE.md).
+## 📁 Directory Structure
 
-# Code coverage
+```
+target/release/
+├── solana
+└── solana-test-validator
 
-To generate code coverage statistics:
+~/.solana-test-validator/
+├── ledger/
+│   ├── tower
+│   └── mint-keypair.json
+```
+
+---
+
+## 🚀 Example Commands
 
 ```bash
-$ scripts/coverage.sh
-$ open target/cov/lcov-local/index.html
+# Start a fresh validator
+./solana-test-validator   --reset-ledger   --rpc-port 8899   --mint-output ~/.solana-test-validator/ledger/mint.json
+
+# Use the CLI with the validator
+solana config set --url http://127.0.0.1:8899
+solana config set --keypair ~/.solana-test-validator/ledger/mint.json
+solana airdrop 100
+solana balance
 ```
 
-Why coverage? While most see coverage as a code quality metric, we see it primarily as a developer
-productivity metric. When a developer makes a change to the codebase, presumably it's a *solution* to
-some problem.  Our unit-test suite is how we encode the set of *problems* the codebase solves. Running
-the test suite should indicate that your change didn't *infringe* on anyone else's solutions. Adding a
-test *protects* your solution from future changes. Say you don't understand why a line of code exists,
-try deleting it and running the unit-tests. The nearest test failure should tell you what problem
-was solved by that code. If no test fails, go ahead and submit a Pull Request that asks, "what
-problem is solved by this code?" On the other hand, if a test does fail and you can think of a
-better way to solve the same problem, a Pull Request with your solution would most certainly be
-welcome! Likewise, if rewriting a test can better communicate what code it's protecting, please
-send us that patch!
+---
 
-# Disclaimer
+## 🔍 Use Cases Enabled
 
-All claims, content, designs, algorithms, estimates, roadmaps,
-specifications, and performance measurements described in this project
-are done with the Solana Labs, Inc. (“SL”) good faith efforts. It is up to
-the reader to check and validate their accuracy and truthfulness.
-Furthermore, nothing in this project constitutes a solicitation for
-investment.
+- Smart contract development and deployment on Android
+- Local program testing without cloud infrastructure
+- Educational blockchain tutorials from a mobile device
+- Embedded validator usage in Android apps
 
-Any content produced by SL or developer resources that SL provides are
-for educational and inspirational purposes only. SL does not encourage,
-induce or sanction the deployment, integration or use of any such
-applications (including the code comprising the Solana blockchain
-protocol) in violation of applicable laws or regulations and hereby
-prohibits any such deployment, integration or use. This includes the use of
-any such applications by the reader (a) in violation of export control
-or sanctions laws of the United States or any other applicable
-jurisdiction, (b) if the reader is located in or ordinarily resident in
-a country or territory subject to comprehensive sanctions administered
-by the U.S. Office of Foreign Assets Control (OFAC), or (c) if the
-reader is or is working on behalf of a Specially Designated National
-(SDN) or a person subject to similar blocking or denied party
-prohibitions.
+---
 
-The reader should be aware that U.S. export control and sanctions laws prohibit 
-U.S. persons (and other persons that are subject to such laws) from transacting 
-with persons in certain countries and territories or that are on the SDN list. 
-Accordingly, there is a risk to individuals that other persons using any of the 
-code contained in this repo, or a derivation thereof, may be sanctioned persons 
-and that transactions with such persons would be a violation of U.S. export 
-controls and sanctions law.
+## 🧪 Future Work
+
+- `.deb` or `.pkg` packaging for Termux binary distribution
+- Automated build + publish via GitHub Actions
+- Binary cache/mirror for easier installation
+- Mobile-optimized Solana tutorials and tooling
+
+---
+
+## 🙌 Appreciation
+
+Huge thanks to [Solana Labs](https://solana.com) and the open-source community.
+
+Forked from: [github.com/solana-labs/solana](https://github.com/solana-labs/solana)
